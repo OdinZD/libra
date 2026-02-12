@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.caffeinemarketing.com)",
+      "Bash(npx vite build:*)",
+      "WebFetch(domain:unsplash.com)",
+      "Bash(curl:*)"
+    ]
+  }
+}
