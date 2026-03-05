@@ -20,6 +20,8 @@ class StudentSchedule extends Model
         'scheduled_time',
         'color',
         'paid',
+        'google_event_id',
+        'last_synced_at',
     ];
 
     protected function casts(): array
@@ -27,6 +29,7 @@ class StudentSchedule extends Model
         return [
             'scheduled_date' => 'date',
             'paid' => 'boolean',
+            'last_synced_at' => 'datetime',
         ];
     }
 

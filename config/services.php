@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'google_calendar' => [
+        'client_id' => env('GOOGLE_CALENDAR_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CALENDAR_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_CALENDAR_REDIRECT_URI', 'http://libra.test/google/callback'),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
+        'tutor_user_ids' => [
+            'coral' => (int) env('TUTOR_MARINA_USER_ID', 1),
+            'purple' => (int) env('TUTOR_VALENTINA_USER_ID', 2),
+        ],
+    ],
+
 ];

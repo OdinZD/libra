@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\ReportController;
 use App\Models\Workshop;
 use Illuminate\Support\Facades\Route;
@@ -20,5 +21,10 @@ Route::livewire('dashboard', 'pages::dashboard.calendar')
 Route::livewire('dashboard/radionice', 'pages::dashboard.radionice')
     ->middleware(['auth', 'verified'])
     ->name('dashboard.radionice');
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('google/connect', [GoogleAuthController::class, 'redirect'])->name('google.connect');
+    Route::get('google/callback', [GoogleAuthController::class, 'callback'])->name('google.callback');
+});
 
 require __DIR__.'/settings.php';
