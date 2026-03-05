@@ -14,7 +14,14 @@
       "Bash(ls:*)",
       "Bash(command:*)",
       "Bash(python3:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(where psql:*)",
+      "Bash(psql:*)",
+      "Bash(pg_isready:*)",
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(PGPASSWORD=123456 psql:*)",
+      "Bash(powershell:*)",
+      "Bash(grep:*)"
     ]
   }
 }
