@@ -3,17 +3,12 @@
 namespace App\Jobs;
 
 use App\Services\GoogleCalendarService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
-class DeleteGoogleCalendarEvent implements ShouldQueue
+class DeleteGoogleCalendarEvent
 {
-    use Dispatchable, InteractsWithQueue, Queueable;
-
-    public int $tries = 3;
+    use Dispatchable;
 
     public function __construct(
         private string $googleEventId,

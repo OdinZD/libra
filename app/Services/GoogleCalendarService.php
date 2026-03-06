@@ -203,6 +203,9 @@ class GoogleCalendarService
             return null;
         }
 
+        // Strip tutor prefix like "[Marina] " or "[Valentina] "
+        $summary = preg_replace('/^\[.*?\]\s*/', '', $summary);
+
         $parts = explode(' - ', $summary, 2);
         $nameParts = explode(' ', trim($parts[0]), 2);
 
@@ -297,7 +300,7 @@ class GoogleCalendarService
     {
         $event = new Event();
 
-        $title = $schedule->studentFullName();
+        $title = '[' . $schedule->tutorName() . '] ' . $schedule->studentFullName();
         if ($schedule->subject) {
             $title .= ' - ' . $schedule->subject;
         }

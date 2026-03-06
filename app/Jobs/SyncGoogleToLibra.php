@@ -4,18 +4,12 @@ namespace App\Jobs;
 
 use App\Observers\StudentScheduleObserver;
 use App\Services\GoogleCalendarService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
 
-class SyncGoogleToLibra implements ShouldQueue, ShouldBeUnique
+class SyncGoogleToLibra
 {
-    use Dispatchable, InteractsWithQueue, Queueable;
-
-    public int $uniqueFor = 30;
+    use Dispatchable;
 
     public function handle(GoogleCalendarService $service): void
     {

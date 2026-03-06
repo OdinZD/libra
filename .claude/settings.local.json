@@ -21,7 +21,17 @@
       "Bash(PGPASSWORD=postgres psql:*)",
       "Bash(PGPASSWORD=123456 psql:*)",
       "Bash(powershell:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(composer show:*)",
+      "Bash(npm:*)",
+      "Bash(composer install:*)",
+      "Bash(zip:*)",
+      "Bash(where powershell:*)",
+      "Bash(/c/Users/odin.perica/Desktop/create-zip.ps1:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(7z a:*)",
+      "Bash(mv:*)"
     ]
   }
 }

@@ -5,18 +5,12 @@ namespace App\Jobs;
 use App\Models\StudentSchedule;
 use App\Observers\StudentScheduleObserver;
 use App\Services\GoogleCalendarService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class SyncScheduleToGoogle implements ShouldQueue
+class SyncScheduleToGoogle
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    public int $tries = 3;
+    use Dispatchable;
 
     public function __construct(
         private StudentSchedule $schedule,
