@@ -16,9 +16,8 @@
 
                 <!-- Branding content -->
                 <div class="relative z-10 flex flex-col items-center gap-6 px-12 text-center">
-                    <div class="flex items-center gap-3">
-                        <img src="/images/logo-libra.png" alt="Libra" class="size-12 rounded-lg" />
-                        <span class="text-4xl font-bold text-gradient-libra">Libra</span>
+                    <div class="flex items-center">
+                        <img src="/images/libra-logo-vectors.svg" alt="Libra" class="h-14 w-auto" />
                     </div>
                     <p class="max-w-sm text-lg font-medium text-libra-warm-text-secondary">
                         Vaša platforma za učenje i podučavanje
@@ -34,10 +33,7 @@
                 <div class="flex w-full max-w-sm flex-col gap-2">
                     <!-- Mobile logo (hidden on lg+) -->
                     <a href="{{ route('home') }}" class="flex flex-col items-center gap-2 font-medium lg:hidden mb-4" wire:navigate>
-                        <span class="flex items-center gap-2">
-                            <img src="/images/logo-libra.png" alt="Libra" class="size-9 rounded-lg" />
-                            <span class="text-2xl font-bold text-gradient-libra">Libra</span>
-                        </span>
+                        <img src="/images/libra-logo-vectors.svg" alt="Libra" class="h-10 w-auto" />
                     </a>
                     <div class="flex flex-col gap-6">
                         {{ $slot }}
