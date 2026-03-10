@@ -295,12 +295,17 @@ html {
 
 .schedule-pill--coral {
     background-color: var(--color-libra-coral-100);
-    color: var(--color-libra-coral-600);
+    color: #000;
 }
 
 .schedule-pill--purple {
     background-color: var(--color-libra-purple-100);
-    color: var(--color-libra-purple-700);
+    color: #000;
+}
+
+.schedule-pill--green {
+    background-color: #dcfce7;
+    color: #000;
 }
 
 .schedule-pill--unpaid {

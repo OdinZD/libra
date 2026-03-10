@@ -6,7 +6,7 @@
     <body class="min-h-screen bg-libra-warm-white">
         <flux:sidebar sticky collapsible="mobile" class="border-e border-libra-amber-100 bg-white text-black text-2xl font-semibold">
             <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />Libra
+                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
                 <flux:sidebar.collapse/>
             </flux:sidebar.header>
 

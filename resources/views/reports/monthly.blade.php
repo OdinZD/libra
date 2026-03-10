@@ -219,6 +219,21 @@
             @endif
         </div>
 
+        @if ($justifiedAbsences > 0 || $unjustifiedAbsences > 0)
+        <div class="cards-row">
+            <div class="card" style="border-color: #fbbf24; background: #fffbeb;">
+                <div class="card-label">Opravdano</div>
+                <div class="card-value" style="color: #d97706;">{{ $justifiedAbsences }}</div>
+                <div class="card-unit">izostanaka</div>
+            </div>
+            <div class="card card-red">
+                <div class="card-label">Neopravdano</div>
+                <div class="card-value">{{ $unjustifiedAbsences }}</div>
+                <div class="card-unit">izostanaka</div>
+            </div>
+        </div>
+        @endif
+
         {{-- Student table --}}
         <div class="table-title">Pregled po učenicima</div>
 
@@ -234,6 +249,8 @@
                         <th>Predmet</th>
                         <th>Tutor</th>
                         <th>Ukupno sati</th>
+                        <th style="text-align: center;">Op.</th>
+                        <th style="text-align: center;">Ne.</th>
                         <th>Neplaćeno</th>
                     </tr>
                 </thead>
@@ -250,6 +267,12 @@
                                 @endforeach
                             </td>
                             <td>{{ $student['hours'] }}</td>
+                            <td style="text-align: center; color: {{ $student['justified'] > 0 ? '#d97706' : '#a3a3a3' }}; font-weight: bold;">
+                                {{ $student['justified'] > 0 ? $student['justified'] : '—' }}
+                            </td>
+                            <td style="text-align: center; color: {{ $student['unjustified'] > 0 ? '#ef4444' : '#a3a3a3' }}; font-weight: bold;">
+                                {{ $student['unjustified'] > 0 ? $student['unjustified'] : '—' }}
+                            </td>
                             <td class="unpaid-cell {{ $student['unpaid'] > 0 ? 'unpaid-cell--red' : 'unpaid-cell--grey' }}">
                                 {{ $student['unpaid'] > 0 ? $student['unpaid'] : '—' }}
                             </td>

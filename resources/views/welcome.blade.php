@@ -12,19 +12,41 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-libra-warm-white text-libra-warm-text antialiased">
+<body class="bg-libra-warm-white text-libra-warm-text antialiased overflow-x-hidden">
 
     {{-- ============================================================ --}}
     {{-- NAVIGACIJA --}}
     {{-- ============================================================ --}}
     <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 bg-transparent">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
+            <div class="flex items-center h-20 gap-3 md:justify-between">
                 {{-- Logo --}}
-                <a href="#home" class="flex items-center gap-2.5">
-                    <img src="/images/logo-libra.png" alt="Libra" class="h-9 w-9 rounded-lg" />
-                    <span class="text-2xl font-bold text-gradient-libra">Libra</span>
+                <a href="#home" class="flex items-center shrink-0">
+                    <img src="/images/libra-logo-vectors.svg" alt="Libra" class="h-10 w-auto" />
                 </a>
+
+                {{-- Mobile: Prijava + Menu Button (sits right after logo) --}}
+                <div class="flex md:hidden items-center gap-2">
+                    @if (Route::has('login'))
+                        @auth
+                            <a href="{{ url('/dashboard') }}" class="rounded-lg bg-gradient-to-r from-libra-amber-500 to-libra-coral-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
+                                Ploča
+                            </a>
+                        @else
+                            <a href="{{ route('login') }}" class="rounded-lg bg-gradient-to-r from-libra-amber-500 to-libra-coral-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
+                                Prijava
+                            </a>
+                        @endauth
+                    @endif
+                    <button id="mobile-menu-toggle" class="p-2 rounded-lg hover:bg-libra-amber-50 transition-colors" aria-label="Otvori izbornik">
+                        <svg class="menu-open-icon size-6 text-libra-warm-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="menu-close-icon size-6 text-libra-warm-text hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
 
                 {{-- Desktop Nav Links --}}
                 <div class="hidden md:flex items-center gap-8">
@@ -47,34 +69,24 @@
                         @endauth
                     @endif
                 </div>
-
-                {{-- Mobile Menu Button --}}
-                <button id="mobile-menu-toggle" class="md:hidden p-2 rounded-lg hover:bg-libra-amber-50 transition-colors" aria-label="Otvori izbornik">
-                    <svg class="menu-open-icon size-6 text-libra-warm-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                    <svg class="menu-close-icon size-6 text-libra-warm-text hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
             </div>
         </div>
 
         {{-- Mobile Menu --}}
         <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-lg border-t border-libra-amber-100">
-            <div class="px-4 py-4 space-y-2">
-                <a href="#home" class="block px-4 py-2.5 text-sm font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">Početna</a>
-                <a href="#about" class="block px-4 py-2.5 text-sm font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">O nama</a>
-                <a href="#workshops" class="block px-4 py-2.5 text-sm font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">Radionice</a>
-                <a href="#contact" class="block px-4 py-2.5 text-sm font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">Kontakt</a>
+            <div class="px-4 py-2 space-y-0.5 max-w-[200px]">
+                <a href="#home" class="block px-3 py-1.5 text-xs font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">Početna</a>
+                <a href="#about" class="block px-3 py-1.5 text-xs font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">O nama</a>
+                <a href="#workshops" class="block px-3 py-1.5 text-xs font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">Radionice</a>
+                <a href="#contact" class="block px-3 py-1.5 text-xs font-medium text-libra-warm-text-secondary hover:bg-libra-amber-50 rounded-lg transition-colors">Kontakt</a>
                 @if (Route::has('login'))
-                    <div class="pt-3 border-t border-libra-amber-100 flex flex-col gap-2">
+                    <div class="pt-2 border-t border-libra-amber-100 flex flex-col gap-1">
                         @auth
-                            <a href="{{ url('/dashboard') }}" class="btn-libra-secondary text-sm text-center py-2">Nadzorna ploča</a>
+                            <a href="{{ url('/dashboard') }}" class="btn-libra-secondary text-xs text-center py-1.5">Nadzorna ploča</a>
                         @else
-                            <a href="{{ route('login') }}" class="text-sm text-center font-medium text-libra-warm-text-secondary py-2 hover:text-libra-amber-600 transition-colors">Prijava</a>
+                            <a href="{{ route('login') }}" class="text-xs text-center font-medium text-libra-warm-text-secondary py-1.5 hover:text-libra-amber-600 transition-colors">Prijava</a>
                             @if (Route::has('register'))
-                                <a href="{{ route('register') }}" class="btn-libra-primary text-sm text-center py-2">Registracija</a>
+                                <a href="{{ route('register') }}" class="btn-libra-primary text-xs text-center py-1.5">Registracija</a>
                             @endif
                         @endauth
                     </div>
@@ -406,9 +418,8 @@
             <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-12">
                 {{-- Brand --}}
                 <div>
-                    <div class="flex items-center gap-2.5 mb-4">
-                        <img src="/images/logo-libra.png" alt="Libra" class="h-9 w-9 rounded-lg" />
-                        <span class="text-2xl font-bold">Libra</span>
+                    <div class="flex items-center mb-4">
+                        <img src="/images/libra-logo-vectors.svg" alt="Libra" class="h-10 w-auto brightness-0 invert" />
                     </div>
                     <p class="text-white/80 text-sm leading-relaxed max-w-xs">
                         Osnažujemo mlade umove kroz radosno, istraživanjem potkrijepljeno obrazovanje. Pripremamo djecu za školu i cjeloživotno učenje.

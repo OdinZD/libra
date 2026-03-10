@@ -35,7 +35,9 @@ class ReportController extends Controller
                 'subjects' => $group->pluck('subject')->filter()->unique()->implode(', ') ?: '-',
                 'tutors' => $group->map(fn ($s) => ['name' => $s->tutorName(), 'color' => $s->color])->unique('name')->values(),
                 'hours' => $group->count(),
-                'unpaid' => $group->where('paid', false)->count(),
+                'unpaid' => $group->where('paid', false)->where('attendance_status', '!=', 'justified_absence')->count(),
+                'justified' => $group->where('attendance_status', 'justified_absence')->count(),
+                'unjustified' => $group->where('attendance_status', 'unjustified_absence')->count(),
             ])
             ->sortBy('last_name')
             ->values();
@@ -43,7 +45,9 @@ class ReportController extends Controller
         $marinaHours = $schedules->where('color', 'coral')->count();
         $valentinaHours = $schedules->where('color', 'purple')->count();
         $totalHours = $marinaHours + $valentinaHours;
-        $unpaidTotal = $schedules->where('paid', false)->count();
+        $unpaidTotal = $schedules->where('paid', false)->where('attendance_status', '!=', 'justified_absence')->count();
+        $justifiedAbsences = $schedules->where('attendance_status', 'justified_absence')->count();
+        $unjustifiedAbsences = $schedules->where('attendance_status', 'unjustified_absence')->count();
 
         $months = [
             1 => 'Siječanj', 2 => 'Veljača', 3 => 'Ožujak', 4 => 'Travanj',
@@ -54,7 +58,8 @@ class ReportController extends Controller
 
         $pdf = Pdf::loadView('reports.monthly', compact(
             'students', 'marinaHours', 'valentinaHours', 'totalHours',
-            'unpaidTotal', 'monthName', 'month', 'year'
+            'unpaidTotal', 'justifiedAbsences', 'unjustifiedAbsences',
+            'monthName', 'month', 'year'
         ));
 
         return $pdf->download("libra-izvjestaj-{$monthName}-{$year}.pdf");

@@ -19,7 +19,9 @@ class StudentSchedule extends Model
         'scheduled_date',
         'scheduled_time',
         'color',
+        'school_type',
         'paid',
+        'attendance_status',
         'google_event_id',
         'last_synced_at',
     ];
@@ -48,7 +50,8 @@ class StudentSchedule extends Model
         return match ($this->color) {
             'coral' => 'Marina',
             'purple' => 'Valentina',
-            default => 'Marina',
+            'green' => 'Neodređen',
+            default => 'Neodređen',
         };
     }
 
@@ -56,7 +59,22 @@ class StudentSchedule extends Model
     {
         return match ($this->color) {
             'purple' => 'bg-libra-purple-100 text-libra-purple-700 border-libra-purple-200',
+            'green' => 'bg-green-100 text-green-700 border-green-200',
             default => 'bg-libra-coral-100 text-libra-coral-700 border-libra-coral-200',
         };
+    }
+
+    public function attendanceLabel(): string
+    {
+        return match ($this->attendance_status) {
+            'justified_absence' => 'Opravdano',
+            'unjustified_absence' => 'Neopravdano',
+            default => 'Prisutan',
+        };
+    }
+
+    public function isAbsent(): bool
+    {
+        return in_array($this->attendance_status, ['justified_absence', 'unjustified_absence']);
     }
 }

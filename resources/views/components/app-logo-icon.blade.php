@@ -1,1 +1,1 @@
-<img src="/images/logo-libra.png" alt="Libra" {{ $attributes }} />
+<img src="/images/libra-logo-vectors.svg" alt="Libra" {{ $attributes }} />

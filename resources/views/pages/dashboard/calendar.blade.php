@@ -10,6 +10,12 @@ new class extends Component {
     public int $currentYear;
     public int $currentMonth;
     public ?string $selectedDate = null;
+    public string $view = 'week'; // 'month' or 'week'
+    public ?string $weekStart = null;
+
+    // Copy week modal
+    public bool $showCopyModal = false;
+    public string $copyTargetDate = '';
 
     // Modal form fields
     public bool $showModal = false;
@@ -20,11 +26,15 @@ new class extends Component {
     public string $note = '';
     public string $scheduledDate = '';
     public string $scheduledTime = '09:00';
-    public string $color = 'coral';
+    public string $color = 'green';
+    public string $schoolType = '';
+    public bool $paidStatus = false;
+    public string $attendanceStatus = 'attended';
 
     public static array $tutorColors = [
         'coral' => 'Marina',
         'purple' => 'Valentina',
+        'green' => 'Neodređen',
     ];
 
     public function mount(): void
@@ -32,6 +42,16 @@ new class extends Component {
         $this->currentYear = now()->year;
         $this->currentMonth = now()->month;
         $this->selectedDate = now()->toDateString();
+        $this->weekStart = now()->startOfWeek(Carbon::MONDAY)->toDateString();
+    }
+
+    public function setView(string $view): void
+    {
+        $this->view = $view;
+        if ($view === 'week' && $this->selectedDate) {
+            $this->weekStart = Carbon::parse($this->selectedDate)->startOfWeek(Carbon::MONDAY)->toDateString();
+        }
+        unset($this->weekSchedules);
     }
 
     public function previousMonth(): void
@@ -48,11 +68,31 @@ new class extends Component {
         $this->currentMonth = $date->month;
     }
 
+    public function previousWeek(): void
+    {
+        $this->weekStart = Carbon::parse($this->weekStart)->subWeek()->toDateString();
+        $ws = Carbon::parse($this->weekStart);
+        $this->currentMonth = $ws->month;
+        $this->currentYear = $ws->year;
+        unset($this->weekSchedules);
+    }
+
+    public function nextWeek(): void
+    {
+        $this->weekStart = Carbon::parse($this->weekStart)->addWeek()->toDateString();
+        $ws = Carbon::parse($this->weekStart);
+        $this->currentMonth = $ws->month;
+        $this->currentYear = $ws->year;
+        unset($this->weekSchedules);
+    }
+
     public function goToToday(): void
     {
         $this->currentYear = now()->year;
         $this->currentMonth = now()->month;
         $this->selectedDate = now()->toDateString();
+        $this->weekStart = now()->startOfWeek(Carbon::MONDAY)->toDateString();
+        unset($this->weekSchedules);
     }
 
     public function selectDate(string $date): void
@@ -67,6 +107,14 @@ new class extends Component {
         $this->showModal = true;
     }
 
+    public function openCreateModalAt(string $date, string $time): void
+    {
+        $this->resetForm();
+        $this->scheduledDate = $date;
+        $this->scheduledTime = $time;
+        $this->showModal = true;
+    }
+
     public function editSchedule(int $id): void
     {
         $schedule = StudentSchedule::findOrFail($id);
@@ -78,6 +126,9 @@ new class extends Component {
         $this->scheduledDate = $schedule->scheduled_date->toDateString();
         $this->scheduledTime = $schedule->scheduled_time;
         $this->color = $schedule->color;
+        $this->schoolType = $schedule->school_type ?? '';
+        $this->paidStatus = $schedule->paid;
+        $this->attendanceStatus = $schedule->attendance_status ?? 'attended';
         $this->showModal = true;
     }
 
@@ -85,7 +136,28 @@ new class extends Component {
     {
         $schedule = StudentSchedule::findOrFail($id);
         $schedule->update(['paid' => !$schedule->paid]);
-        unset($this->monthSchedules, $this->selectedDaySchedules, $this->unpaidCount, $this->studentUnpaidSummary);
+        unset($this->monthSchedules, $this->selectedDaySchedules, $this->unpaidCount, $this->studentUnpaidSummary, $this->weekSchedules);
+    }
+
+    public function cycleAttendance(int $id): void
+    {
+        $schedule = StudentSchedule::findOrFail($id);
+        $next = match ($schedule->attendance_status) {
+            'attended' => 'justified_absence',
+            'justified_absence' => 'unjustified_absence',
+            default => 'attended',
+        };
+
+        $data = ['attendance_status' => $next];
+
+        if ($next === 'justified_absence') {
+            $data['paid'] = true;
+        } elseif ($next === 'unjustified_absence') {
+            $data['paid'] = false;
+        }
+
+        $schedule->update($data);
+        unset($this->monthSchedules, $this->selectedDaySchedules, $this->unpaidCount, $this->studentUnpaidSummary, $this->weekSchedules);
     }
 
     public function saveSchedule(): void
@@ -94,10 +166,10 @@ new class extends Component {
             'studentFirstName' => 'required|string|max:255',
             'studentLastName' => 'required|string|max:255',
             'subject' => 'nullable|string|max:255',
-            'note' => 'nullable|string|max:1000',
             'scheduledDate' => 'required|date',
             'scheduledTime' => 'required|string',
-            'color' => 'required|in:coral,purple',
+            'color' => 'required|in:coral,purple,green',
+            'schoolType' => 'nullable|in:osnovna,srednja',
         ]);
 
         $data = [
@@ -109,9 +181,16 @@ new class extends Component {
             'scheduled_date' => $this->scheduledDate,
             'scheduled_time' => $this->scheduledTime,
             'color' => $this->color,
+            'school_type' => $this->schoolType ?: null,
         ];
 
+        $data['paid'] = $this->paidStatus;
+
         if ($this->editingId) {
+            $data['attendance_status'] = $this->attendanceStatus;
+            if ($this->attendanceStatus === 'justified_absence') {
+                $data['paid'] = true;
+            }
             StudentSchedule::findOrFail($this->editingId)->update($data);
         } else {
             StudentSchedule::create($data);
@@ -120,13 +199,55 @@ new class extends Component {
         $this->showModal = false;
         $this->resetForm();
         $this->selectedDate = $data['scheduled_date'];
-        unset($this->monthSchedules, $this->selectedDaySchedules, $this->todayCount, $this->weekCount, $this->totalStudents, $this->marinaMonthlyHours, $this->valentinaMonthlyHours, $this->unpaidCount, $this->studentUnpaidSummary);
+        unset($this->monthSchedules, $this->selectedDaySchedules, $this->todayCount, $this->weekCount, $this->totalStudents, $this->marinaMonthlyHours, $this->valentinaMonthlyHours, $this->unpaidCount, $this->studentUnpaidSummary, $this->weekSchedules);
     }
 
     public function deleteSchedule(int $id): void
     {
         StudentSchedule::findOrFail($id)->delete();
-        unset($this->monthSchedules, $this->selectedDaySchedules, $this->todayCount, $this->weekCount, $this->totalStudents, $this->marinaMonthlyHours, $this->valentinaMonthlyHours, $this->unpaidCount, $this->studentUnpaidSummary);
+        unset($this->monthSchedules, $this->selectedDaySchedules, $this->todayCount, $this->weekCount, $this->totalStudents, $this->marinaMonthlyHours, $this->valentinaMonthlyHours, $this->unpaidCount, $this->studentUnpaidSummary, $this->weekSchedules);
+    }
+
+    public function openCopyModal(): void
+    {
+        $nextWeek = Carbon::parse($this->weekStart)->addWeek();
+        $this->copyTargetDate = $nextWeek->toDateString();
+        $this->showCopyModal = true;
+    }
+
+    public function copyWeek(): void
+    {
+        $sourceStart = Carbon::parse($this->weekStart);
+        $sourceEnd = $sourceStart->copy()->addDays(6);
+        $targetStart = Carbon::parse($this->copyTargetDate)->startOfWeek(Carbon::MONDAY);
+
+        $schedules = StudentSchedule::whereBetween('scheduled_date', [
+            $sourceStart->toDateString(),
+            $sourceEnd->toDateString(),
+        ])->get();
+
+        foreach ($schedules as $schedule) {
+            $dayOfWeek = Carbon::parse($schedule->scheduled_date)->dayOfWeekIso; // 1=Mon, 7=Sun
+            $newDate = $targetStart->copy()->addDays($dayOfWeek - 1);
+
+            StudentSchedule::create([
+                'user_id' => $schedule->user_id,
+                'student_first_name' => $schedule->student_first_name,
+                'student_last_name' => $schedule->student_last_name,
+                'subject' => $schedule->subject,
+                'note' => $schedule->note,
+                'scheduled_date' => $newDate->toDateString(),
+                'scheduled_time' => $schedule->scheduled_time,
+                'color' => $schedule->color,
+                'school_type' => $schedule->school_type,
+            ]);
+        }
+
+        $this->showCopyModal = false;
+        $this->weekStart = $targetStart->toDateString();
+        $this->currentMonth = $targetStart->month;
+        $this->currentYear = $targetStart->year;
+        unset($this->monthSchedules, $this->selectedDaySchedules, $this->todayCount, $this->weekCount, $this->totalStudents, $this->marinaMonthlyHours, $this->valentinaMonthlyHours, $this->unpaidCount, $this->studentUnpaidSummary, $this->weekSchedules);
     }
 
     #[Computed]
@@ -161,6 +282,47 @@ new class extends Component {
             ->orderBy('scheduled_time')
             ->get()
             ->groupBy(fn ($s) => $s->scheduled_date->toDateString());
+    }
+
+    #[Computed]
+    public function weekSchedules(): \Illuminate\Support\Collection
+    {
+        $start = Carbon::parse($this->weekStart);
+        $end = $start->copy()->addDays(6);
+
+        return StudentSchedule::with('user')
+            ->whereBetween('scheduled_date', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('scheduled_time')
+            ->get()
+            ->groupBy(fn ($s) => $s->scheduled_date->toDateString());
+    }
+
+    #[Computed]
+    public function weekDays(): array
+    {
+        $start = Carbon::parse($this->weekStart);
+        $days = [];
+        for ($i = 0; $i < 7; $i++) {
+            $days[] = $start->copy()->addDays($i);
+        }
+        return $days;
+    }
+
+    #[Computed]
+    public function weekLabel(): string
+    {
+        $start = Carbon::parse($this->weekStart);
+        $end = $start->copy()->addDays(6);
+        $months = [
+            1 => 'sij', 2 => 'velj', 3 => 'ožu', 4 => 'tra',
+            5 => 'svi', 6 => 'lip', 7 => 'srp', 8 => 'kol',
+            9 => 'ruj', 10 => 'lis', 11 => 'stu', 12 => 'pro',
+        ];
+
+        if ($start->month === $end->month) {
+            return $start->day . '. - ' . $end->day . '. ' . $months[$start->month] . ' ' . $start->year;
+        }
+        return $start->day . '. ' . $months[$start->month] . ' - ' . $end->day . '. ' . $months[$end->month] . ' ' . $end->year;
     }
 
     #[Computed]
@@ -218,13 +380,16 @@ new class extends Component {
     #[Computed]
     public function unpaidCount(): int
     {
-        return StudentSchedule::where('paid', false)->count();
+        return StudentSchedule::where('paid', false)
+            ->where('attendance_status', '!=', 'justified_absence')
+            ->count();
     }
 
     #[Computed]
     public function studentUnpaidSummary(): \Illuminate\Support\Collection
     {
         return StudentSchedule::where('paid', false)
+            ->where('attendance_status', '!=', 'justified_absence')
             ->get()
             ->groupBy(fn ($s) => mb_strtolower($s->student_first_name) . ' ' . mb_strtolower($s->student_last_name))
             ->map(fn ($group) => [
@@ -255,84 +420,19 @@ new class extends Component {
         $this->note = '';
         $this->scheduledDate = '';
         $this->scheduledTime = '09:00';
-        $this->color = 'coral';
+        $this->color = 'green';
+        $this->schoolType = '';
+        $this->paidStatus = false;
+        $this->attendanceStatus = 'attended';
     }
 }; ?>
 
 <div class="flex h-full w-full flex-1 flex-col gap-6 p-2">
 
-        {{-- Stat Cards --}}
-        <div class="grid gap-4 sm:grid-cols-3">
-            {{-- Today's sessions --}}
-            <div class="stat-card flex items-center gap-4 rounded-xl border border-libra-amber-100 bg-white p-5 shadow-sm">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-libra-amber-50">
-                    <svg class="h-6 w-6 text-libra-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-libra-warm-text-secondary">Današnje sesije</p>
-                    <p class="text-2xl font-bold text-libra-warm-text stat-number">{{ $this->todayCount }}</p>
-                </div>
-            </div>
-
-            {{-- This week --}}
-            <div class="stat-card flex items-center gap-4 rounded-xl border border-libra-coral-100 bg-white p-5 shadow-sm">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-libra-coral-50">
-                    <svg class="h-6 w-6 text-libra-coral-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                    </svg>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-libra-warm-text-secondary">Ovaj tjedan</p>
-                    <p class="text-2xl font-bold text-libra-warm-text stat-number">{{ $this->weekCount }}</p>
-                </div>
-            </div>
-
-            {{-- Unpaid sessions --}}
-            <div class="stat-card flex items-center gap-4 rounded-xl border {{ $this->unpaidCount > 0 ? 'border-libra-red-400' : 'border-green-200' }} bg-white p-5 shadow-sm">
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg {{ $this->unpaidCount > 0 ? 'bg-libra-red-50' : 'bg-green-50' }}">
-                    @if ($this->unpaidCount > 0)
-                        <svg class="h-6 w-6 text-libra-red-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                    @else
-                        <svg class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                        </svg>
-                    @endif
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-libra-warm-text-secondary">Neplaćene sesije</p>
-                    <p class="text-2xl font-bold {{ $this->unpaidCount > 0 ? 'text-libra-red-500' : 'text-green-600' }} stat-number">{{ $this->unpaidCount }}</p>
-                </div>
-            </div>
-        </div>
-
-        {{-- Unpaid Student Summary --}}
-        @if ($this->unpaidCount > 0)
-            <div class="rounded-xl border border-libra-red-400 bg-libra-red-50 p-4 shadow-sm">
-                <div class="mb-2 flex items-center gap-2">
-                    <svg class="h-4 w-4 text-libra-red-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                    </svg>
-                    <span class="text-sm font-semibold text-libra-red-600">Neplaćene sesije po učeniku</span>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    @foreach ($this->studentUnpaidSummary as $student)
-                        <span class="inline-flex items-center gap-1.5 rounded-full border border-libra-red-400 bg-white px-3 py-1 text-xs font-medium text-libra-red-600">
-                            {{ $student['name'] }}
-                            <span class="rounded-full bg-libra-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">{{ $student['count'] }}</span>
-                        </span>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-
         {{-- Tutor Legend with Hours + PDF Download --}}
-        <div class="flex flex-col gap-3 rounded-xl border border-libra-amber-100 bg-white px-5 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <span class="text-sm font-medium text-libra-warm-text-secondary">Tutori:</span>
+        <div class="flex flex-col gap-3 rounded-xl border border-libra-amber-100 bg-white px-3 py-3 shadow-sm sm:px-5 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
+                <span class="text-xs sm:text-sm font-medium text-libra-warm-text-secondary">Tutori:</span>
                 <div class="flex items-center gap-2">
                     <span class="h-3 w-3 rounded-full bg-libra-coral-400"></span>
                     <span class="text-sm font-semibold text-libra-warm-text">Marina</span>
@@ -342,6 +442,10 @@ new class extends Component {
                     <span class="h-3 w-3 rounded-full bg-libra-purple-400"></span>
                     <span class="text-sm font-semibold text-libra-warm-text">Valentina</span>
                     <span class="rounded-full bg-libra-purple-100 px-2 py-0.5 text-xs font-semibold text-libra-purple-700">{{ $this->valentinaMonthlyHours }} sati</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="h-3 w-3 rounded-full bg-green-400"></span>
+                    <span class="text-sm font-semibold text-libra-warm-text">Neodređen</span>
                 </div>
             </div>
             <a
@@ -355,28 +459,54 @@ new class extends Component {
             </a>
         </div>
 
-        {{-- Calendar + Day Detail --}}
+        {{-- Unpaid Alert --}}
+        @if ($this->unpaidCount > 0)
+            <div class="rounded-xl border border-libra-red-400 bg-libra-red-50 p-4 shadow-sm">
+                <div class="mb-2 flex items-center gap-2">
+                    <svg class="h-4 w-4 text-libra-red-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    <span class="text-sm font-semibold text-libra-red-600">Neplaćene sesije ({{ $this->unpaidCount }})</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach ($this->studentUnpaidSummary as $student)
+                        <span class="inline-flex items-center gap-1.5 rounded-full border border-libra-red-400 bg-white px-3 py-1 text-xs font-medium text-libra-red-600">
+                            {{ $student['name'] }}
+                            <span class="rounded-full bg-libra-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">{{ $student['count'] }}</span>
+                        </span>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        @if ($view === 'month')
+        {{-- MONTHLY VIEW --}}
         <div class="grid gap-6 lg:grid-cols-3">
             {{-- Calendar Grid --}}
             <div class="lg:col-span-2 rounded-xl border border-libra-amber-100 bg-white p-4 shadow-sm">
                 {{-- Month Navigation --}}
-                <div class="mb-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
+                <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center justify-center gap-1">
                         <button wire:click="previousMonth" class="rounded-lg p-2 text-libra-warm-text-secondary hover:bg-libra-amber-50 transition-colors">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
                             </svg>
                         </button>
-                        <h2 class="text-lg font-semibold text-libra-warm-text min-w-[180px] text-center">{{ $this->monthName }}</h2>
+                        <h2 class="text-base font-semibold text-libra-warm-text min-w-[150px] text-center sm:text-lg sm:min-w-[180px]">{{ $this->monthName }}</h2>
                         <button wire:click="nextMonth" class="rounded-lg p-2 text-libra-warm-text-secondary hover:bg-libra-amber-50 transition-colors">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
                         </button>
                     </div>
-                    <button wire:click="goToToday" class="rounded-lg border border-libra-amber-200 px-3 py-1.5 text-sm font-medium text-libra-amber-700 hover:bg-libra-amber-50 transition-colors">
-                        Danas
-                    </button>
+                    <div class="flex items-center justify-center gap-2">
+                        <button wire:click="goToToday" class="rounded-lg border border-libra-amber-200 px-3 py-1.5 text-sm font-medium text-libra-amber-700 hover:bg-libra-amber-50 transition-colors">
+                            Danas
+                        </button>
+                        <button wire:click="setView('week')" class="rounded-lg border border-libra-amber-200 px-3 py-1.5 text-sm font-medium text-libra-amber-700 hover:bg-libra-amber-50 transition-colors">
+                            Tjedan
+                        </button>
+                    </div>
                 </div>
 
                 {{-- Day Headers --}}
@@ -416,8 +546,15 @@ new class extends Component {
                             @if ($daySchedules->count() > 0)
                                 <div class="mt-1 flex flex-col gap-0.5 overflow-hidden">
                                     @foreach ($daySchedules->take(2) as $schedule)
-                                        <span wire:key="pill-{{ $schedule->id }}" class="schedule-pill schedule-pill--{{ $schedule->color }} {{ !$schedule->paid ? 'schedule-pill--unpaid' : '' }} truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight">
-                                            {{ !$schedule->paid ? '! ' : '' }}{{ $schedule->studentFullName() }}
+                                        <span wire:key="pill-{{ $schedule->id }}" class="schedule-pill schedule-pill--{{ $schedule->color }} {{ !$schedule->paid && $schedule->attendance_status !== 'justified_absence' ? 'schedule-pill--unpaid' : '' }} truncate rounded px-1 py-0.5 text-[11px] font-medium leading-tight {{ $schedule->isAbsent() ? 'opacity-60' : '' }}">
+                                            @if ($schedule->attendance_status === 'justified_absence')
+                                                <span class="text-yellow-600">Op</span>
+                                            @elseif ($schedule->attendance_status === 'unjustified_absence')
+                                                <span class="font-bold text-libra-red-500">!</span>
+                                            @elseif (!$schedule->paid)
+                                                !
+                                            @endif
+                                            <span class="{{ $schedule->isAbsent() ? 'line-through' : '' }}">{{ $schedule->studentFullName() }}</span>
                                         </span>
                                     @endforeach
                                     @if ($daySchedules->count() > 2)
@@ -468,18 +605,23 @@ new class extends Component {
                     @else
                         <div class="space-y-3">
                             @foreach ($this->selectedDaySchedules as $schedule)
-                                <div wire:key="detail-{{ $schedule->id }}" class="group relative rounded-lg border border-zinc-100 p-3 hover:border-libra-amber-200 transition-colors">
+                                <div wire:key="detail-{{ $schedule->id }}" class="group relative rounded-lg border border-zinc-100 p-3 hover:border-libra-amber-200 transition-colors {{ $schedule->attendance_status === 'justified_absence' ? 'opacity-60 border-l-2 border-l-yellow-400' : '' }} {{ $schedule->attendance_status === 'unjustified_absence' ? 'border-l-2 border-l-libra-red-400' : '' }}">
                                     <div class="flex items-start justify-between">
                                         <div class="flex items-start gap-3">
                                             <div class="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full
-                                                {{ $schedule->color === 'coral' ? 'bg-libra-coral-400' : 'bg-libra-purple-400' }}
+                                                {{ $schedule->color === 'coral' ? 'bg-libra-coral-400' : ($schedule->color === 'purple' ? 'bg-libra-purple-400' : 'bg-green-400') }}
                                             "></div>
                                             <div>
-                                                <p class="text-sm font-semibold text-libra-warm-text">
+                                                <p class="text-sm font-semibold text-libra-warm-text {{ $schedule->isAbsent() ? 'line-through' : '' }}">
+                                                    @if ($schedule->attendance_status === 'justified_absence')
+                                                        <span class="text-yellow-600 text-xs font-bold mr-1">Op</span>
+                                                    @elseif ($schedule->attendance_status === 'unjustified_absence')
+                                                        <span class="text-libra-red-500 text-xs font-bold mr-1">Ne</span>
+                                                    @endif
                                                     {{ $schedule->studentFullName() }}
                                                 </p>
                                                 <p class="text-xs text-libra-warm-text-secondary">
-                                                    {{ $schedule->scheduled_time }} &middot; {{ $schedule->color === 'coral' ? 'Marina' : 'Valentina' }}
+                                                    {{ $schedule->scheduled_time }} &middot; {{ $schedule->tutorName() }}
                                                 </p>
                                                 @if ($schedule->note)
                                                     <p class="mt-1 text-xs text-libra-warm-text-secondary/80 line-clamp-2">
@@ -525,6 +667,147 @@ new class extends Component {
             </div>
         </div>
 
+        @else
+        {{-- WEEKLY VIEW --}}
+        <div class="rounded-xl border border-libra-amber-100 bg-white p-2 shadow-sm sm:p-4">
+            {{-- Week Navigation --}}
+            <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center justify-center gap-1">
+                    <button wire:click="previousWeek" class="rounded-lg p-2 text-libra-warm-text-secondary hover:bg-libra-amber-50 transition-colors">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <h2 class="text-base font-semibold text-libra-warm-text min-w-[180px] text-center sm:text-lg sm:min-w-[220px]">{{ $this->weekLabel }}</h2>
+                    <button wire:click="nextWeek" class="rounded-lg p-2 text-libra-warm-text-secondary hover:bg-libra-amber-50 transition-colors">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center justify-center gap-2">
+                    <button wire:click="openCopyModal" class="rounded-lg border border-libra-amber-200 px-3 py-1.5 text-sm font-medium text-libra-amber-700 hover:bg-libra-amber-50 transition-colors">
+                        Kopiraj tjedan
+                    </button>
+                    <button wire:click="goToToday" class="rounded-lg border border-libra-amber-200 px-3 py-1.5 text-sm font-medium text-libra-amber-700 hover:bg-libra-amber-50 transition-colors">
+                        Danas
+                    </button>
+                    <button wire:click="setView('month')" class="rounded-lg border border-libra-amber-200 px-3 py-1.5 text-sm font-medium text-libra-amber-700 hover:bg-libra-amber-50 transition-colors">
+                        Mjesec
+                    </button>
+                </div>
+            </div>
+
+            {{-- Weekly Grid --}}
+            <div class="overflow-x-auto -mx-2 px-2 sm:-mx-0 sm:px-0">
+                <div class="min-w-[600px] sm:min-w-[800px]">
+                    {{-- Day Headers --}}
+                    <div class="grid grid-cols-[40px_repeat(7,1fr)] sm:grid-cols-[60px_repeat(7,1fr)] border-b border-libra-amber-100">
+                        <div></div>
+                        @foreach ($this->weekDays as $day)
+                            @php
+                                $dayNamesFull = ['Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota', 'Nedjelja'];
+                                $dayNamesShort = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'];
+                                $dayNameFull = $dayNamesFull[$day->dayOfWeekIso - 1];
+                                $dayNameShort = $dayNamesShort[$day->dayOfWeekIso - 1];
+                                $isToday = $day->isToday();
+                            @endphp
+                            <div class="py-2 px-0.5 sm:px-1 text-center border-l border-libra-amber-100/50">
+                                <div class="text-[10px] sm:text-xs font-semibold uppercase tracking-wide {{ $isToday ? 'text-libra-amber-600' : 'text-libra-warm-text-secondary' }}">
+                                    <span class="hidden sm:inline">{{ $dayNameFull }}</span>
+                                    <span class="sm:hidden">{{ $dayNameShort }}</span>
+                                </div>
+                                <div class="mt-0.5 inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full text-xs sm:text-sm font-bold
+                                    {{ $isToday ? 'bg-libra-amber-500 text-white' : 'text-libra-warm-text' }}">
+                                    {{ $day->day }}
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Hour Rows --}}
+                    @for ($h = 8; $h <= 23; $h++)
+                        @php $hour = sprintf('%02d:00', $h); @endphp
+                        <div wire:key="hour-row-{{ $h }}" class="grid grid-cols-[40px_repeat(7,1fr)] sm:grid-cols-[60px_repeat(7,1fr)] border-b border-zinc-100/80 min-h-[48px] sm:min-h-[52px]">
+                            {{-- Hour label --}}
+                            <div class="pr-1 sm:pr-2 pt-1 text-right text-[10px] sm:text-xs font-medium text-libra-warm-text-secondary">
+                                {{ $hour }}
+                            </div>
+
+                            {{-- Day cells --}}
+                            @foreach ($this->weekDays as $day)
+                                @php
+                                    $dateStr = $day->toDateString();
+                                    $daySchedules = $this->weekSchedules[$dateStr] ?? collect();
+                                    $hourSchedules = $daySchedules->filter(function ($s) use ($hour) {
+                                        return str_starts_with($s->scheduled_time, substr($hour, 0, 2) . ':');
+                                    });
+                                @endphp
+                                <div
+                                    wire:key="cell-{{ $dateStr }}-{{ $h }}"
+                                    wire:click="openCreateModalAt('{{ $dateStr }}', '{{ $hour }}')"
+                                    class="border-l border-zinc-100/50 p-0.5 cursor-pointer hover:bg-libra-amber-50/40 transition-colors overflow-hidden min-w-0"
+                                >
+                                    @foreach ($hourSchedules as $schedule)
+                                        <div
+                                            wire:key="ws-{{ $schedule->id }}"
+                                            wire:click.stop="editSchedule({{ $schedule->id }})"
+                                            class="group/card mb-0.5 rounded px-1 sm:px-1.5 py-1 text-[10px] sm:text-[11px] font-medium leading-tight cursor-pointer overflow-hidden min-w-0
+                                                {{ $schedule->color === 'coral'
+                                                    ? 'bg-libra-coral-100 text-black border-libra-coral-400'
+                                                    : ($schedule->color === 'purple'
+                                                        ? 'bg-libra-purple-100 text-black border-libra-purple-400'
+                                                        : 'bg-green-100 text-black border-green-400') }}
+                                                {{ $schedule->attendance_status === 'justified_absence' ? 'border-l-2 border-l-yellow-400 opacity-60' : 'border-l-2' }}
+                                                {{ $schedule->attendance_status === 'unjustified_absence' ? 'ring-1 ring-libra-red-400' : '' }}
+                                                {{ $schedule->attendance_status === 'attended' && !$schedule->paid ? 'ring-1 ring-libra-red-400' : '' }}"
+                                            title="{{ $schedule->studentFullName() }} - {{ $schedule->tutorName() }}{{ $schedule->subject ? ' - ' . $schedule->subject : '' }}{{ $schedule->attendance_status !== 'attended' ? ' (' . $schedule->attendanceLabel() . ')' : '' }}{{ !$schedule->paid ? ' (Neplaćeno)' : '' }}"
+                                        >
+                                            <div class="flex items-center justify-between gap-0.5 min-w-0">
+                                                <span class="truncate min-w-0">
+                                                    @if ($schedule->attendance_status === 'unjustified_absence' && !$schedule->paid)
+                                                        <span class="font-bold text-libra-red-500">!</span>
+                                                    @endif
+                                                    <span class="font-semibold {{ $schedule->isAbsent() ? 'line-through' : '' }}">{{ $schedule->studentFullName() }}</span>
+                                                    <span class="text-[9px] sm:text-[10px] opacity-70">{{ $schedule->color === 'coral' ? 'M' : ($schedule->color === 'purple' ? 'V' : 'N') }}</span>
+                                                </span>
+                                                <span class="flex shrink-0 gap-0.5">
+                                                    <button
+                                                        wire:click.stop="cycleAttendance({{ $schedule->id }})"
+                                                        class="shrink-0 rounded-full px-1 sm:px-1.5 py-0.5 text-[9px] font-bold transition-colors
+                                                            {{ $schedule->attendance_status === 'attended'
+                                                                ? 'bg-green-200 text-green-800 hover:bg-green-300'
+                                                                : ($schedule->attendance_status === 'justified_absence'
+                                                                    ? 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300'
+                                                                    : 'bg-libra-red-100 text-libra-red-600 hover:bg-libra-red-200') }}"
+                                                        title="{{ $schedule->attendanceLabel() }}"
+                                                    >
+                                                        {{ $schedule->attendance_status === 'attended' ? '✓' : ($schedule->attendance_status === 'justified_absence' ? 'Op' : 'Ne') }}
+                                                    </button>
+                                                    @if ($schedule->attendance_status !== 'justified_absence')
+                                                        <button
+                                                            wire:click.stop="togglePaid({{ $schedule->id }})"
+                                                            class="shrink-0 rounded-full px-1 sm:px-1.5 py-0.5 text-[9px] font-bold transition-colors
+                                                                {{ $schedule->paid
+                                                                    ? 'bg-green-200 text-green-800 hover:bg-green-300'
+                                                                    : 'bg-libra-red-100 text-libra-red-600 hover:bg-libra-red-200' }}"
+                                                        >
+                                                            {{ $schedule->paid ? '€' : '!' }}
+                                                        </button>
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        </div>
+                    @endfor
+                </div>
+            </div>
+        </div>
+        @endif
+
         {{-- Schedule Modal --}}
         @if ($showModal)
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showModal', false)">
@@ -566,26 +849,29 @@ new class extends Component {
                             </div>
                         </div>
 
-                        <div>
-                            <label class="mb-1 block text-sm font-medium text-libra-warm-text">Predmet</label>
-                            <input
-                                wire:model="subject"
-                                type="text"
-                                class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-libra-warm-text placeholder-zinc-400 focus:border-libra-amber-400 focus:outline-none focus:ring-2 focus:ring-libra-amber-200"
-                                placeholder="npr. Matematika, Engleski..."
-                            />
-                            @error('subject') <span class="text-xs text-libra-red-500">{{ $message }}</span> @enderror
-                        </div>
-
-                        <div>
-                            <label class="mb-1 block text-sm font-medium text-libra-warm-text">Napomena</label>
-                            <textarea
-                                wire:model="note"
-                                rows="3"
-                                class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-libra-warm-text placeholder-zinc-400 focus:border-libra-amber-400 focus:outline-none focus:ring-2 focus:ring-libra-amber-200"
-                                placeholder="Što učenik treba? Ostali tutori će vidjeti ovu napomenu."
-                            ></textarea>
-                            @error('note') <span class="text-xs text-libra-red-500">{{ $message }}</span> @enderror
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-libra-warm-text">Predmet</label>
+                                <input
+                                    wire:model="subject"
+                                    type="text"
+                                    class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-libra-warm-text placeholder-zinc-400 focus:border-libra-amber-400 focus:outline-none focus:ring-2 focus:ring-libra-amber-200"
+                                    placeholder="npr. Matematika..."
+                                />
+                                @error('subject') <span class="text-xs text-libra-red-500">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-libra-warm-text">Škola</label>
+                                <select
+                                    wire:model="schoolType"
+                                    class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-libra-warm-text focus:border-libra-amber-400 focus:outline-none focus:ring-2 focus:ring-libra-amber-200"
+                                >
+                                    <option value="">-- Odaberi --</option>
+                                    <option value="osnovna">Osnovna</option>
+                                    <option value="srednja">Srednja</option>
+                                </select>
+                                @error('schoolType') <span class="text-xs text-libra-red-500">{{ $message }}</span> @enderror
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
@@ -606,11 +892,8 @@ new class extends Component {
                                     required
                                     class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-libra-warm-text focus:border-libra-amber-400 focus:outline-none focus:ring-2 focus:ring-libra-amber-200"
                                 >
-                                    @for ($h = 8; $h <= 18; $h++)
+                                    @for ($h = 8; $h <= 23; $h++)
                                         <option value="{{ sprintf('%02d:00', $h) }}">{{ sprintf('%02d:00', $h) }}</option>
-                                        @if ($h < 18)
-                                            <option value="{{ sprintf('%02d:30', $h) }}">{{ sprintf('%02d:30', $h) }}</option>
-                                        @endif
                                     @endfor
                                 </select>
                                 @error('scheduledTime') <span class="text-xs text-libra-red-500">{{ $message }}</span> @enderror
@@ -619,7 +902,13 @@ new class extends Component {
 
                         <div>
                             <label class="mb-2 block text-sm font-medium text-libra-warm-text">Tutor</label>
-                            <div class="flex gap-4">
+                            <div class="flex flex-wrap gap-3">
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
+                                    {{ $color === 'green' ? 'border-green-400 bg-green-50' : 'border-zinc-200 hover:border-zinc-300' }}">
+                                    <input type="radio" wire:model.live="color" value="green" class="sr-only" />
+                                    <span class="h-3 w-3 rounded-full bg-green-400"></span>
+                                    <span class="text-sm font-medium {{ $color === 'green' ? 'text-green-600' : 'text-libra-warm-text-secondary' }}">Neodređen</span>
+                                </label>
                                 <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
                                     {{ $color === 'coral' ? 'border-libra-coral-400 bg-libra-coral-50' : 'border-zinc-200 hover:border-zinc-300' }}">
                                     <input type="radio" wire:model.live="color" value="coral" class="sr-only" />
@@ -634,6 +923,45 @@ new class extends Component {
                                 </label>
                             </div>
                         </div>
+
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-libra-warm-text">Plaćanje</label>
+                            <div class="flex flex-wrap gap-3">
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
+                                    {{ $paidStatus ? 'border-green-400 bg-green-50' : 'border-zinc-200 hover:border-zinc-300' }}">
+                                    <input type="radio" wire:model.live="paidStatus" value="1" class="sr-only" />
+                                    <span class="text-sm font-medium {{ $paidStatus ? 'text-green-600' : 'text-libra-warm-text-secondary' }}">Plaćeno</span>
+                                </label>
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
+                                    {{ !$paidStatus ? 'border-libra-red-400 bg-libra-red-50' : 'border-zinc-200 hover:border-zinc-300' }}">
+                                    <input type="radio" wire:model.live="paidStatus" value="0" class="sr-only" />
+                                    <span class="text-sm font-medium {{ !$paidStatus ? 'text-libra-red-600' : 'text-libra-warm-text-secondary' }}">Neplaćeno</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        @if ($editingId)
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-libra-warm-text">Dolazak</label>
+                            <div class="flex flex-wrap gap-3">
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
+                                    {{ $attendanceStatus === 'attended' ? 'border-green-400 bg-green-50' : 'border-zinc-200 hover:border-zinc-300' }}">
+                                    <input type="radio" wire:model.live="attendanceStatus" value="attended" class="sr-only" />
+                                    <span class="text-sm font-medium {{ $attendanceStatus === 'attended' ? 'text-green-600' : 'text-libra-warm-text-secondary' }}">Prisutan</span>
+                                </label>
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
+                                    {{ $attendanceStatus === 'justified_absence' ? 'border-yellow-400 bg-yellow-50' : 'border-zinc-200 hover:border-zinc-300' }}">
+                                    <input type="radio" wire:model.live="attendanceStatus" value="justified_absence" class="sr-only" />
+                                    <span class="text-sm font-medium {{ $attendanceStatus === 'justified_absence' ? 'text-yellow-600' : 'text-libra-warm-text-secondary' }}">Opravdano</span>
+                                </label>
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 px-4 py-2.5 transition-all
+                                    {{ $attendanceStatus === 'unjustified_absence' ? 'border-libra-red-400 bg-libra-red-50' : 'border-zinc-200 hover:border-zinc-300' }}">
+                                    <input type="radio" wire:model.live="attendanceStatus" value="unjustified_absence" class="sr-only" />
+                                    <span class="text-sm font-medium {{ $attendanceStatus === 'unjustified_absence' ? 'text-libra-red-600' : 'text-libra-warm-text-secondary' }}">Neopravdano</span>
+                                </label>
+                            </div>
+                        </div>
+                        @endif
 
                         <div class="flex justify-end gap-3 pt-2">
                             <button
@@ -651,6 +979,54 @@ new class extends Component {
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        @endif
+
+        {{-- Copy Week Modal --}}
+        @if ($showCopyModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" wire:click.self="$set('showCopyModal', false)">
+                <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" @click.stop>
+                    <div class="mb-5 flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-libra-warm-text">Kopiraj tjedan</h3>
+                        <button wire:click="$set('showCopyModal', false)" class="rounded-lg p-1 text-libra-warm-text-secondary hover:bg-zinc-100">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-libra-warm-text-secondary mb-3">
+                                Svi učenici iz trenutnog tjedna (<strong>{{ $this->weekLabel }}</strong>) bit će kopirani u odabrani tjedan.
+                            </p>
+                            <label class="mb-1 block text-sm font-medium text-libra-warm-text">Kopiraj u tjedan koji počinje:</label>
+                            <input
+                                wire:model="copyTargetDate"
+                                type="date"
+                                class="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-libra-warm-text focus:border-libra-amber-400 focus:outline-none focus:ring-2 focus:ring-libra-amber-200"
+                            />
+                            <p class="mt-1 text-xs text-libra-warm-text-secondary">Odaberite bilo koji dan — kopija će krenuti od ponedjeljka tog tjedna.</p>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                wire:click="$set('showCopyModal', false)"
+                                class="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-libra-warm-text-secondary hover:bg-zinc-50 transition-colors"
+                            >
+                                Odustani
+                            </button>
+                            <button
+                                wire:click="copyWeek"
+                                wire:confirm="Jeste li sigurni da želite kopirati sve sesije u odabrani tjedan?"
+                                class="rounded-lg bg-gradient-to-r from-libra-amber-500 to-libra-coral-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:from-libra-amber-600 hover:to-libra-coral-600 transition-all"
+                            >
+                                Kopiraj
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         @endif

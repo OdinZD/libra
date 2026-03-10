@@ -234,6 +234,7 @@ class GoogleCalendarService
             'scheduled_date' => $carbon->toDateString(),
             'scheduled_time' => $carbon->format('H:i'),
             'color' => $color,
+            'attendance_status' => 'attended',
         ];
     }
 
@@ -333,7 +334,8 @@ class GoogleCalendarService
         return match ($color) {
             'coral' => '4',   // flamingo
             'purple' => '1',  // lavender
-            default => '4',
+            'green' => '2',   // sage
+            default => '2',
         };
     }
 
@@ -341,7 +343,9 @@ class GoogleCalendarService
     {
         return match ($googleColorId) {
             '1' => 'purple',  // lavender → Valentina
-            default => 'coral', // everything else → Marina
+            '4' => 'coral',   // flamingo → Marina
+            '2' => 'green',   // sage → Neodređen
+            default => 'green', // everything else → Neodređen
         };
     }
 
