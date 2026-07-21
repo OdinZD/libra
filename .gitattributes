@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# Auto detect text files and perform LF normalization
-* text=auto
-=======
 * text=auto eol=lf
 
 *.blade.php diff=html
@@ -13,4 +9,3 @@
 CHANGELOG.md export-ignore
 README.md export-ignore
 .github/workflows/browser-tests.yml export-ignore
->>>>>>> d74bd10 (First commit for Libra website)
