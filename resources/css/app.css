@@ -259,3 +259,78 @@ html {
 .stat-number {
     font-variant-numeric: tabular-nums;
 }
+
+/* === Calendar Styles === */
+
+.calendar-day {
+    transition: background-color 0.15s ease;
+}
+
+.calendar-day--today {
+    background-color: var(--color-libra-amber-50);
+}
+
+.calendar-day--selected {
+    background-color: var(--color-libra-amber-50);
+    box-shadow: inset 0 0 0 2px var(--color-libra-amber-300);
+}
+
+.calendar-day--outside {
+    opacity: 0.4;
+}
+
+/* Schedule Pills */
+
+.schedule-pill {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.schedule-pill--amber {
+    background-color: var(--color-libra-amber-100);
+    color: var(--color-libra-amber-700);
+}
+
+.schedule-pill--coral {
+    background-color: var(--color-libra-coral-100);
+    color: var(--color-libra-coral-600);
+}
+
+.schedule-pill--purple {
+    background-color: var(--color-libra-purple-100);
+    color: var(--color-libra-purple-700);
+}
+
+.schedule-pill--unpaid {
+    border: 1.5px dashed var(--color-libra-red-400);
+    opacity: 0.85;
+}
+
+/* Stat Cards */
+
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Auth Button Override for Flux */
+
+.btn-libra-flux {
+    background: linear-gradient(135deg, var(--color-libra-amber-500), var(--color-libra-coral-500)) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.25);
+    transition: all 0.3s ease;
+}
+
+.btn-libra-flux:hover {
+    background: linear-gradient(135deg, var(--color-libra-amber-600), var(--color-libra-coral-600)) !important;
+    box-shadow: 0 8px 15px -3px rgba(245, 158, 11, 0.35);
+    transform: translateY(-1px);
+}

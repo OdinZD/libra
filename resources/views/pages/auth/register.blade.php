@@ -53,15 +53,15 @@
             />
 
             <div class="flex items-center justify-end">
-                <flux:button type="submit" variant="primary" class="w-full" data-test="register-user-button">
+                <flux:button type="submit" variant="primary" class="w-full btn-libra-flux" data-test="register-user-button">
                     {{ __('Create account') }}
                 </flux:button>
             </div>
         </form>
 
-        <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
+        <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-libra-warm-text-secondary">
             <span>{{ __('Already have an account?') }}</span>
-            <flux:link :href="route('login')" wire:navigate>{{ __('Log in') }}</flux:link>
+            <flux:link :href="route('login')" wire:navigate class="text-libra-amber-600 hover:text-libra-amber-700">{{ __('Log in') }}</flux:link>
         </div>
     </div>
 </x-layouts::auth>
