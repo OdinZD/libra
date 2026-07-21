@@ -49,7 +49,7 @@ class SyncScheduleToGoogle
                 'action' => $this->action,
                 'error' => $e->getMessage(),
             ]);
-            throw $e;
+            // Swallowed intentionally: a Google sync failure must never break the user's save action.
         }
     }
 }

@@ -24,7 +24,7 @@ class SyncGoogleToLibra
             Log::info('Google Calendar inbound sync completed', $counts);
         } catch (\Exception $e) {
             Log::error('Google Calendar inbound sync failed', ['error' => $e->getMessage()]);
-            throw $e;
+            // Swallowed intentionally: an inbound sync failure must never break the request.
         } finally {
             StudentScheduleObserver::$isSyncing = false;
         }

@@ -27,7 +27,7 @@ class DeleteGoogleCalendarEvent
                 'google_event_id' => $this->googleEventId,
                 'error' => $e->getMessage(),
             ]);
-            throw $e;
+            // Swallowed intentionally: a Google delete failure must never break the user's action.
         }
     }
 }
