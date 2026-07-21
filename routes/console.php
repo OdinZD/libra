@@ -8,4 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('google:sync')->everyFiveMinutes();
+// Google Calendar sync disabled — re-enable when the feature is needed.
+// Schedule::command('google:sync')->everyFiveMinutes();

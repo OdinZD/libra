@@ -2,8 +2,8 @@
 
 namespace App\Observers;
 
-use App\Jobs\DeleteGoogleCalendarEvent;
-use App\Jobs\SyncScheduleToGoogle;
+// use App\Jobs\DeleteGoogleCalendarEvent; // Google Calendar sync disabled
+// use App\Jobs\SyncScheduleToGoogle; // Google Calendar sync disabled
 use App\Models\StudentSchedule;
 use App\Models\User;
 use App\Notifications\ScheduleChangedNotification;
@@ -19,7 +19,7 @@ class StudentScheduleObserver
             return;
         }
 
-        SyncScheduleToGoogle::dispatch($schedule, 'created');
+        // SyncScheduleToGoogle::dispatch($schedule, 'created'); // Google Calendar sync disabled
         $this->notifyOtherTutor($schedule, 'created');
     }
 
@@ -42,7 +42,7 @@ class StudentScheduleObserver
             }
         }
 
-        SyncScheduleToGoogle::dispatch($schedule, 'updated');
+        // SyncScheduleToGoogle::dispatch($schedule, 'updated'); // Google Calendar sync disabled
 
         if ($hasMeaningfulChange) {
             $this->notifyOtherTutor($schedule, 'updated');
@@ -55,9 +55,10 @@ class StudentScheduleObserver
             return;
         }
 
-        if ($schedule->google_event_id) {
-            DeleteGoogleCalendarEvent::dispatch($schedule->google_event_id);
-        }
+        // Google Calendar sync disabled
+        // if ($schedule->google_event_id) {
+        //     DeleteGoogleCalendarEvent::dispatch($schedule->google_event_id);
+        // }
 
         $this->notifyOtherTutor($schedule, 'deleted');
     }
