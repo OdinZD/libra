@@ -1,37 +1,42 @@
 ---
 # cPanel deployment for Libra (Laravel 12).
 #
-# Runs when you click "Deploy HEAD Commit" in cPanel -> Git Version Control.
-# cPanel first checks out HEAD into this repository's directory, then runs the
-# tasks below. Adding this file is also what un-greys the "Deploy" button.
+# TOPOLOGY (confirmed from public_html/index.php: it loads ../libra and sets public path to itself)
+#   $DEPLOYPATH = /home/librazad/repositories/libra   git staging checkout (this repo)
+#   APP         = /home/librazad/libra                 LIVE Laravel app  (code runs from here)
+#   DOCROOT     = /home/librazad/public_html           web root          (Laravel public assets)
 #
-# ASSUMPTION: this repository directory is the same directory your site is served
-# from (the setup where "Update from Remote" already makes changes go live). In
-# that case these tasks simply finish the deploy by refreshing Laravel's caches so
-# the new PHP code and Blade views take effect immediately.
+# WHAT THIS DOES
+#   1. Copies the freshly checked-out code from the staging repo into the live app (~/libra).
+#   2. Copies the public assets (images/, favicons, robots.txt) into the web root (~/public_html).
+#   3. Clears Laravel's caches on the live app so the new code + views take effect.
 #
-# SAFE BY DESIGN: these commands only CLEAR Laravel caches. They never copy, move,
-# or delete your site files and never touch .env, so a wrong path can log an error
-# in the deploy output but cannot break or expose the live site.
+# WHAT IT PRESERVES (never overwritten or deleted)
+#   live app:  .env, storage/, vendor/         (secrets, runtime state, installed dependencies)
+#   web root:  index.php, .htaccess, .well-known/   (your customized bootstrap + server files)
 #
-# IF THE DEPLOY LOG SHOWS "Could not open input file: artisan":
-#   replace  $DEPLOYPATH  below with the exact "Repository Path" shown on the Git
-#   Version Control page, e.g.  /home/YOURUSER/repositories/libra
+# SAFETY: STARTS IN DRY-RUN.
+#   The first deploy only PRINTS what it would copy and changes nothing on the live site.
+#   Read the deploy log. When the file list looks right (no .env, no index.php, and it lists
+#   images/Cjenik-Libra-2026.png), change the line below to  DRYRUN=""  and deploy again to apply.
 #
-# IF PHP IS THE WRONG VERSION (Laravel 12 needs PHP 8.2+):
-#   pin it explicitly, e.g.  export PHP=/opt/cpanel/ea-php82/root/usr/bin/php
-#
-# IF YOUR APP IS SERVED FROM A SEPARATE DOCUMENT ROOT (not this directory):
-#   do NOT use this as-is — the caches would be cleared in the wrong place.
-#   File-copy tasks need to be added instead; ask before deploying.
+# NOT HANDLED HERE: front-end build assets (public/build) are gitignored and shipped as
+#   public/build.zip. Only relevant when JS/CSS changes. Your current changes do not need it.
 
 deployment:
   tasks:
-    - export APP=$DEPLOYPATH
+    - export DRYRUN="-n"        # <-- change to   DRYRUN=""   to apply changes for real
+    - export SRC=$DEPLOYPATH
+    - export APP=/home/librazad/libra
+    - export DOCROOT=/home/librazad/public_html
     - export PHP=$(command -v php || echo /usr/local/bin/php)
-    - echo "Deploying Libra from $APP using $PHP"
+    - echo "DRYRUN=[$DRYRUN] SRC=$SRC APP=$APP DOCROOT=$DOCROOT PHP=$PHP"
+    # 1) App code -> live app. Preserve live secrets/state/deps; public assets handled in step 2.
+    - rsync -a $DRYRUN -v --exclude='.git/' --exclude='.env' --exclude='storage/' --exclude='vendor/' --exclude='node_modules/' --exclude='public/' $SRC/ $APP/
+    # 2) Public assets -> web root. Preserve custom index.php/.htaccess/.well-known; skip build artifacts.
+    - rsync -a $DRYRUN -v --exclude='index.php' --exclude='.htaccess' --exclude='.well-known/' --exclude='build/' --exclude='build.zip' $SRC/public/ $DOCROOT/
+    # 3) Refresh caches on the LIVE app (safe/idempotent; takes effect once code is really copied).
     - $PHP $APP/artisan optimize:clear
-    # Optional performance step -- uncomment once the site is confirmed stable:
-    # - $PHP $APP/artisan config:cache
-    # - $PHP $APP/artisan route:cache
-    # - $PHP $APP/artisan view:cache
+    # Optional -- uncomment only when they apply:
+    # - cd $APP && composer install --no-dev --optimize-autoloader --no-interaction   # only if composer.lock changed
+    # - $PHP $APP/artisan migrate --force                                             # only if there are new migrations
