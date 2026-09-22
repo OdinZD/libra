@@ -1,0 +1,37 @@
+---
+# cPanel deployment for Libra (Laravel 12).
+#
+# Runs when you click "Deploy HEAD Commit" in cPanel -> Git Version Control.
+# cPanel first checks out HEAD into this repository's directory, then runs the
+# tasks below. Adding this file is also what un-greys the "Deploy" button.
+#
+# ASSUMPTION: this repository directory is the same directory your site is served
+# from (the setup where "Update from Remote" already makes changes go live). In
+# that case these tasks simply finish the deploy by refreshing Laravel's caches so
+# the new PHP code and Blade views take effect immediately.
+#
+# SAFE BY DESIGN: these commands only CLEAR Laravel caches. They never copy, move,
+# or delete your site files and never touch .env, so a wrong path can log an error
+# in the deploy output but cannot break or expose the live site.
+#
+# IF THE DEPLOY LOG SHOWS "Could not open input file: artisan":
+#   replace  $DEPLOYPATH  below with the exact "Repository Path" shown on the Git
+#   Version Control page, e.g.  /home/YOURUSER/repositories/libra
+#
+# IF PHP IS THE WRONG VERSION (Laravel 12 needs PHP 8.2+):
+#   pin it explicitly, e.g.  export PHP=/opt/cpanel/ea-php82/root/usr/bin/php
+#
+# IF YOUR APP IS SERVED FROM A SEPARATE DOCUMENT ROOT (not this directory):
+#   do NOT use this as-is — the caches would be cleared in the wrong place.
+#   File-copy tasks need to be added instead; ask before deploying.
+
+deployment:
+  tasks:
+    - export APP=$DEPLOYPATH
+    - export PHP=$(command -v php || echo /usr/local/bin/php)
+    - echo "Deploying Libra from $APP using $PHP"
+    - $PHP $APP/artisan optimize:clear
+    # Optional performance step -- uncomment once the site is confirmed stable:
+    # - $PHP $APP/artisan config:cache
+    # - $PHP $APP/artisan route:cache
+    # - $PHP $APP/artisan view:cache
