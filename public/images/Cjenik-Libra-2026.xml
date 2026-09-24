@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cjenik godina="2026" valuta="EUR">
+
+  <pruzatelj>
+    <naziv>Libra, obrt za poduku</naziv>
+    <vlasnica>Marina Blaži Pestić</vlasnica>
+    <adresa>Josipa Jurja Strossmayera 9, 23000 Zadar</adresa>
+    <email>librazadar@gmail.com</email>
+    <telefon>095/8398394</telefon>
+    <oib>78567340183</oib>
+    <mb>97834939</mb>
+  </pruzatelj>
+
+  <skupina naziv="Individualna poduka">
+    <usluga>
+      <naziv>Poduka nastavne jedinice – OŠ</naziv>
+      <razina>osnovna škola</razina>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>kom.</jedinica>
+      <cijena valuta="EUR">20.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Poduka nastavne jedinice – SŠ</naziv>
+      <razina>srednja škola</razina>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>kom.</jedinica>
+      <cijena valuta="EUR">25.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Svladavanje vještina potrebnih za upis u školu</naziv>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>kom.</jedinica>
+      <cijena valuta="EUR">25.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Pripreme za maturu – individualni sat</naziv>
+      <razina>srednja škola</razina>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>kom.</jedinica>
+      <cijena valuta="EUR">25.00</cijena>
+    </usluga>
+  </skupina>
+
+  <skupina naziv="Savjetovanje">
+    <usluga>
+      <naziv>Savjetovanje</naziv>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>kom.</jedinica>
+      <cijena valuta="EUR">30.00</cijena>
+    </usluga>
+  </skupina>
+
+  <skupina naziv="Radionice">
+    <usluga>
+      <naziv>Ljetna škola za predškolce</naziv>
+      <razina>predškolci</razina>
+      <broj_radionica>4</broj_radionica>
+      <trajanje_min>60</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">70.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Učenje je lako, pokazat ću ti kako</naziv>
+      <broj_radionica>5</broj_radionica>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">100.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Tematska radionica</naziv>
+      <trajanje_min>60</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">20.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Pripreme za državnu maturu – pisanje eseja</naziv>
+      <razina>srednja škola</razina>
+      <broj_radionica>10</broj_radionica>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">200.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Čitam i razumijem pročitano, Večer knjige</naziv>
+      <broj_radionica>6</broj_radionica>
+      <trajanje_min>60</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">90.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Pripreme za nacionalne ispite</naziv>
+      <broj_radionica>10</broj_radionica>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">100.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Pripreme za nacionalne ispite HJ/MAT</naziv>
+      <broj_radionica>3</broj_radionica>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">40.00</cijena>
+    </usluga>
+    <usluga>
+      <naziv>Pripreme za nacionalne ispite KEM/FIZ</naziv>
+      <broj_radionica>2</broj_radionica>
+      <trajanje_min>45</trajanje_min>
+      <jedinica>pak.</jedinica>
+      <cijena valuta="EUR">30.00</cijena>
+    </usluga>
+  </skupina>
+
+  <skupina naziv="Mjesečni paketi">
+    <podskupina naziv="Osnovna škola" trajanje_min="45">
+      <usluga>
+        <naziv>1 dolazak tjedno</naziv>
+        <dolazaka_tjedno>1</dolazaka_tjedno>
+        <jedinica>mj.</jedinica>
+        <cijena valuta="EUR">80.00</cijena>
+      </usluga>
+      <usluga>
+        <naziv>2 dolaska tjedno</naziv>
+        <dolazaka_tjedno>2</dolazaka_tjedno>
+        <jedinica>mj.</jedinica>
+        <cijena valuta="EUR">140.00</cijena>
+      </usluga>
+      <usluga>
+        <naziv>3 dolaska tjedno</naziv>
+        <dolazaka_tjedno>3</dolazaka_tjedno>
+        <jedinica>mj.</jedinica>
+        <cijena valuta="EUR">200.00</cijena>
+      </usluga>
+    </podskupina>
+    <podskupina naziv="Srednja škola" trajanje_min="45">
+      <usluga>
+        <naziv>1 dolazak tjedno</naziv>
+        <dolazaka_tjedno>1</dolazaka_tjedno>
+        <jedinica>mj.</jedinica>
+        <cijena valuta="EUR">90.00</cijena>
+      </usluga>
+      <usluga>
+        <naziv>2 dolaska tjedno</naziv>
+        <dolazaka_tjedno>2</dolazaka_tjedno>
+        <jedinica>mj.</jedinica>
+        <cijena valuta="EUR">170.00</cijena>
+      </usluga>
+      <usluga>
+        <naziv>3 dolaska tjedno</naziv>
+        <dolazaka_tjedno>3</dolazaka_tjedno>
+        <jedinica>mj.</jedinica>
+        <cijena valuta="EUR">250.00</cijena>
+      </usluga>
+    </podskupina>
+  </skupina>
+
+  <nacin_placanja>
+    <opis>Plaćanje svih usluga vrši se isključivo gotovinski nakon održanog sata ili radionice.</opis>
+    <opis>Mjesečni paketi plaćaju se na temelju unaprijed poslane ponude putem transakcijskog računa.</opis>
+  </nacin_placanja>
+
+</cjenik>
